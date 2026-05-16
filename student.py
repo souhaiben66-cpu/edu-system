@@ -1,128 +1,171 @@
 import streamlit as st
+import pandas as pd
+import os
 
-# إعدادات الصفحة الأساسية لتكون مريحة وعريضة
-st.set_page_config(page_title="منظومة إدارة المجاميع والطلاب", layout="wide", initial_sidebar_state="expanded")
+# إعدادات الصفحة لتكون عريضة وفخمة ومناسبة لنظام المربعات
+st.set_page_config(page_title="منظومة إدارة المجاميع التعليمية", page_icon="📚", layout="wide")
 
-# تصميم ستايل مخصص (CSS) لجعل البطاقات تشبه صورتك تماماً
+# تصميم ستايل مخصص (CSS) مدمج: مظهر داكن + بطاقات مربعة أنيقة تشبه أنظمة الفنادق والغرف
 st.markdown("""
     <style>
-    .group-card {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 20px;
+    /* المظهر العام الداكن للموقع */
+    .main { 
+        background-color: #1a1a1a; 
+        color: #ffffff; 
+    }
+    
+    /* تصميم البطاقة المربعة للجروب */
+    .group-box {
+        background-color: #222831;
+        border: 2px solid #00adb5;
+        border-radius: 15px;
+        padding: 30px 20px;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-        transition: transform 0.2s;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        margin-bottom: 25px;
+        color: #ffffff;
+        transition: transform 0.3s, border-color 0.3s;
     }
-    .group-card:hover {
+    
+    /* حركة تفاعلية عند مرور الماوس فوق المربع */
+    .group-box:hover {
         transform: translateY(-5px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        border-color: #00f3ff;
     }
-    .group-title {
-        font-size: 24px;
+    
+    /* عنوان الجروب داخل المربع */
+    .group-name {
+        font-size: 28px;
         font-weight: bold;
-        color: #2c3e50;
-        margin-bottom: 10px;
+        color: #00adb5;
+        margin-bottom: 15px;
     }
-    .group-stat {
-        font-size: 16px;
-        color: #7f8c8d;
-        margin: 5px 0;
+    
+    /* الإحصائيات داخل المربع */
+    .group-count {
+        font-size: 18px;
+        color: #eeeeee;
+        background-color: #393e46;
+        padding: 8px 15px;
+        border-radius: 8px;
+        display: inline-block;
+        margin-top: 10px;
     }
     </style>
-""", unsafe_allow_allowed_html=True)
+""", unsafe_allow_html=True)
 
-# إدارة البيانات باستخدام الذاكرة المؤقتة (Session State)
-if 'groups' not in st.session_state:
-    st.session_state.groups = ["(بنين) A كروب", "(بنات) B كروب"]
+# ملف حفظ البيانات محلياً لمنع ضياع أسماء الطلاب
+DATA_FILE = "students_data.csv"
 
-if 'students' not in st.session_state:
-    st.session_state.students = []
+def load_data():
+    if os.path.exists(DATA_FILE):
+        return pd.read_csv(DATA_FILE)
+    else:
+        return pd.DataFrame(columns=["اسم الطالب", "المجموعة / الكروب", "رقم الهاتف", "رقم ولي الأمر"])
 
-# --- القائمة الجانبية (Sidebar) لإضافة كروب جديد ---
-with st.sidebar:
-    st.header("⚙️ لوحة التحكم")
-    st.subheader("➕ إضافة كروب جديد")
-    new_group_name = st.text_input("اكتب اسم الكروب الجديد:")
-    if st.button("حفظ الكروب المطور"):
-        if new_group_name and new_group_name not in st.session_state.groups:
-            st.session_state.groups.append(new_group_name)
-            st.success(f"✅ تم إضافة {new_group_name}")
-            st.rerun()
-        else:
-            st.error("الاسم فارغ أو موجود مسبقاً!")
+def save_data(df):
+    df.to_csv(DATA_FILE, index=False)
 
-# --- الواجهة الرئيسية للموقع ---
-st.title("📚 لوحة إدارة مجاميع الخصوصي المطورة")
+df = load_data()
+
+# المجاميع الافتراضية في النظام
+if "available_groups" not in st.session_state:
+    st.session_state.available_groups = ["(بنين) A كروب", "(بنات) B كروب"]
+
+# قراءة أي كروب إضافي تم حفظه سابقاً في ملف الـ CSV
+for g in df["المجموعة / الكروب"].dropna().unique():
+    if g not in st.session_state.available_groups:
+        st.session_state.available_groups.append(g)
+
+# --- الواجهة الرئيسية ---
+st.markdown("<h1 style='color: #00adb5; text-align: center; font-family: Cairo, sans-serif;'>إدارة مجاميع الخصوصي المطورة 📚</h1>", unsafe_allow_html=True)
 st.write("---")
 
-# 1. قسم تسجيل الطلاب الجدد
-st.subheader("📝 تسجيل طالب جديد في النظام")
-with st.expander("اضغط هنا لفتح استمارة التسجيل الإلكترونية"):
+# لوحة التحكم الجانبية لإضافة كروب جديد في أي وقت
+with st.sidebar:
+    st.markdown("<h2 style='color: #00adb5;'>⚙️ التحكم بالنظام</h2>", unsafe_allow_html=True)
+    st.subheader("➕ إضافة كروب جديد")
+    new_group = st.text_input("اكتب اسم الكروب الجديد:")
+    if st.button("حفظ الكروب في القائمة"):
+        if new_group and new_group not in st.session_state.available_groups:
+            st.session_state.available_groups.append(new_group)
+            st.success(f"✅ تم إضافة: {new_group}")
+            st.rerun()
+
+# قسم استمارة تسجيل الطلاب الجدد
+st.subheader("📝 تسجيل طالب جديد")
+with st.expander("اضغط هنا لفتح استمارة التسجيل وتعبئة البيانات"):
     col1, col2 = st.columns(2)
     with col1:
-        student_name = st.text_input("اسم الطالب الثلاثي:")
-        selected_group = st.selectbox("اختر المجموعة / الكروب:", st.session_state.groups)
+        student_name = st.text_input("اسم الطالب الثلاثي")
+        student_group = st.selectbox("اختر المجموعة / الكروب", st.session_state.available_groups)
     with col2:
-        student_phone = st.text_input("رقم هاتف الطالب:")
-        parent_phone = st.text_input("رقم هاتف ولي الأمر:")
+        student_phone = st.text_input("رقم هاتف الطالب")
+        parent_phone = st.text_input("رقم هاتف ولي الأمر")
     
     if st.button("💾 حفظ الطالب في النظام"):
         if student_name and student_phone:
-            st.session_state.students.append({
-                "name": student_name,
-                "group": selected_group,
-                "phone": student_phone,
-                "parent": parent_phone
-            })
+            new_student = pd.DataFrame([[student_name, student_group, student_phone, parent_phone]], 
+                                       columns=["اسم الطالب", "المجموعة / الكروب", "رقم الهاتف", "رقم ولي الأمر"])
+            df = pd.concat([df, new_student], ignore_index=True)
+            save_data(df)
             st.success(f"🎉 تم تسجيل الطالب {student_name} بنجاح!")
             st.rerun()
         else:
-            st.error("الرجاء ملء اسم الطالب ورقم الهاتف على الأقل!")
+            st.error("الرجاء كتابة اسم الطالب ورقم هاتفه!")
 
 st.write("---")
 
-# 2. عرض الكروبات على شكل بطاقات مربعة (مثل نظام الغرف بالفندق!)
-st.subheader("🗂️ عرض المجاميع الحالية (نظام البطاقات)")
+# --- عرض الكروبات بنظام المربعات (مثل واجهة الفندق!) ---
+st.subheader("🗂️ لوحة المجاميع الحالية (نظام البطاقات المشنفة)")
 
-# نقسم الصفحة إلى 3 أعمدة لعرض البطاقات بجانب بعضها
+# تقسيم العرض برمجياً إلى 3 أعمدة لتظهر المربعات بجانب بعضها بشكل متناسق
 cols = st.columns(3)
-for index, group in enumerate(st.session_state.groups):
-    # حساب عدد الطلاب داخل هذا الكروب حالياً
-    count_students = sum(1 for s in st.session_state.students if s['group'] == group)
+
+for index, group in enumerate(st.session_state.available_groups):
+    # حساب عدد الطلاب الفعليين داخل هذا الكروب بالتحديد
+    count_students = len(df[df["المجموعة / الكروب"] == group])
     
+    # توزيع الكروبات على الأعمدة الثلاثة بالتناوب
     with cols[index % 3]:
-        # كود الـ HTML لصنع البطاقة المربعة الأنيقة
+        # رسم المربع بتنسيق HTML و CSS المطورين في الأعلى
         st.markdown(f"""
-            <div class="group-card">
-                <div class="group-title">👤 {group}</div>
-                <div class="group-stat">📋 إجمالي الطلاب: <b>{count_students}</b></div>
-                <div class="group-stat">⏰ المحاضرة القادمة: السبت 4:00 م</div>
+            <div class="group-box">
+                <div class="group-name">📁 {group}</div>
+                <div class="group-count">👥 الطلاب: <b>{count_students}</b></div>
             </div>
         """, unsafe_allow_html=True)
         
-        # زر لعرض طلاب هذا الكروب بالتحديد تحت البطاقة
-        with st.popover(f"🔍 استعراض طلاب {group}"):
-            group_students = [s for s in st.session_state.students if s['group'] == group]
-            if group_students:
-                for s in group_students:
-                    st.write(f"• **{s['name']}** - هاتف: {s['phone']}")
+        # صندوق منبثق أنيق يفتح تحت المربع مباشرة لإدارة وحذف طلاب هذا الكروب
+        with st.popover(f"🔍 استعراض وإدارة طلاب {group}"):
+            group_df = df[df["المجموعة / الكروب"] == group]
+            if not group_df.empty:
+                for idx, row in group_df.iterrows():
+                    col_s1, col_s2 = st.columns([4, 1])
+                    with col_s1:
+                        st.write(f"👤 **{row['اسم الطالب']}**\n📞 {row['رقم الهاتف']}")
+                    with col_s2:
+                        # زر الحذف السريع للطالب بوضع علامة ضرب إكس
+                        if st.button("❌", key=f"del_{idx}"):
+                            df = df.drop(idx)
+                            save_data(df)
+                            st.success("تم الحذف!")
+                            st.rerun()
+                    st.write("---")
             else:
-                st.write("لا يوجد طلاب مسجلين في هذا الكروب حالياً.")
+                st.write("لا يوجد طلاب مسجلين في هذه المجموعة حالياً.")
 
 st.write("---")
 
-# 3. قاعدة البيانات الإجمالية والبحث
-st.subheader("🔍 قاعدة بيانات الطلاب العامة والبحث المباشر")
-search_query = st.text_input("🕵️ اكتب اسم الطالب للبحث عنه فوراً:")
+# قاعدة البيانات الكلية والبحث المباشر عن أي اسم
+st.subheader("🔍 قاعدة بيانات الطلاب والبحث السريع")
+search_query = st.text_input("ادخل اسم الطالب للبحث الفوري عنه:")
 
-if st.session_state.students:
-    filtered_students = [s for s in st.session_state.students if search_query.lower() in s['name'].lower()]
-    if filtered_students:
-        st.table(filtered_students)
+if not df.empty:
+    if search_query:
+        filtered_df = df[df["اسم الطالب"].str.contains(search_query, case=False, na=False)]
+        st.dataframe(filtered_df, use_container_width=True)
     else:
-        st.warning("لا توجد بيانات مطابقة للبحث حالياً.")
+        st.dataframe(df, use_container_width=True)
 else:
-    st.info("💡 النظام فارغ، قم بتسجيل أول طالب لتظهر البيانات هنا.")
+    st.info("💡 النظام فارغ حالياً. بمجرد تسجيل الطلاب ستظهر البيانات هنا.")
